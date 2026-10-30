@@ -217,10 +217,11 @@ def displaceable_bot_chat(authority, row, subject=None):
     ``api_`` row an older gateway or a plain ``POST /api/sessions`` minted, a messaging row, an
     unbound CLI/TUI/Desktop row the delivering *subject* cannot adopt), else None. Such a row can
     never be adopted (``validate_legacy_row``), renamed (the canonical title is its identity) or
-    renamed over the API, so it would refuse every delivery for good. A bound local chat, old local
-    history *subject* adopts (``_kept_local_history``) and a Desktop row a foreign login stamped
-    with its label are never moved. *subject* None: the row's own stamp adopts it, as a peer DM's
-    turn enters the chat (``admit_peer_turn``)."""
+    renamed over the API, so it would refuse every delivery for good. A bound local chat, and a
+    lineage whose compression tip (the row a delivery adopts) is old local history *subject* adopts
+    or a Desktop row a foreign login stamped with its label (``_kept_local_history``), are never
+    moved. *subject* None: the row's own stamp adopts it, as a peer DM's turn enters the chat
+    (``admit_peer_turn``)."""
     from hermes_state_local import POLICY_PREFIX
     from hermes_state_local_migration import LEGACY_PREFIX
 
@@ -242,9 +243,9 @@ def displaceable_bot_chat(authority, row, subject=None):
                             (POLICY_PREFIX + (chat_id or candidate['id']),
                              LEGACY_PREFIX + (chat_id or candidate['id']))).fetchone():
                 return None
-        if _kept_local_history(db, candidate, subject):
-            return None
-    return row['id']
+    # Only the tip is adopted (``_target``), so only the tip decides: a root the owner could adopt
+    # above a tip nobody can would otherwise hold the title and refuse every delivery.
+    return None if _kept_local_history(db, tip, subject) else row['id']
 
 
 def release_superseded_bot_chat(db, store, route, session_id):
